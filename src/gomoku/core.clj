@@ -3,25 +3,22 @@
             [gomoku.stupid-ai :as stupid])
   (:gen-class))
 
-(def x-offset 15) ; in pixels
+; Some pixel settings
+(def x-offset 15)
+(def y-offset 40)
+(def cell-size 25)
 
-(def y-offset 40) ; in pixels
+; Game board settings
+(def cell-count-horizontal 20)
+(def cell-count-vertical 15)
 
-(def grid-size-x 20) ; nr of cells horizontal
-
-(def grid-size-y 15) ; nr of cells vertical
-
-(def cell-size 25) ; in pixels
-
-(def state (atom [{:player :a :pos [2 3]}
-                  {:player :a :pos [3 3]}
-                  {:player :a :pos [10 3]}
-                  {:player :b :pos [4 4]}]))
+(def board-state (atom [{:player :a :pos [0 1]}
+                        {:player :b :pos [2 3]}]))
 
 (def game-state (atom :turn-a))
 
 (defn new-game []
-  (reset! state [])
+  (reset! board-state [])
   (reset! game-state :turn-a))
 
 (defn stop []
@@ -31,12 +28,12 @@
   (cond (= game-state :turn-a) :turn-b
         (= game-state :turn-b) :turn-a))
 
-(defn is-cell-occupied? [state pos]
-  (some true? (for [cell state]
+(defn is-cell-occupied? [board pos]
+  (some true? (for [cell board]
                 (= (:pos cell) pos))))
 
-(defn get-player-moves [player state]
-  (map :pos (filter #(= player (:player %)) state)))
+(defn get-player-moves [player board]
+  (map :pos (filter #(= player (:player %)) board)))
 
 (defn add-pos [[x1 y1][x2 y2]]
   [(+ x1 x2)
@@ -56,33 +53,29 @@
         :when (not (and (= 0 x) (= 0 y)))]
     [x y]))
 
-(defn get-lengths [player state]
-  (let [moves (get-player-moves player state)]
+(defn get-lengths [player board]
+  (let [moves (get-player-moves player board)]
     (for [move moves
           dir dirs]
       (nr-of-moves-in-dir moves move dir))))
 
-;@state
-;(doall (get-player-moves :a @state))
-;(nr-of-moves-in-dir (get-player-moves :a @state) [3 3] [1 1])
-;(doall (get-lengths :a @state))
+(defn has-won? [player board]
+  (not (empty? (filter #(>= % 5) (get-lengths player board)))))
 
-(defn has-won? [player state]
-  (not (empty? (filter #(>= % 5) (get-lengths player state)))))
-
-(defn make-move [player move-pos]
+(defn make-move! [player move-pos]
   (cond 
-   (>= (count @state) (* grid-size-x grid-size-y)) (reset! game-state :board-is-full)
+   (>= (count @board-state) (* cell-count-horizontal cell-count-vertical)) (reset! game-state :board-is-full)
    (not (nil? move-pos)) (do
-                           (if (is-cell-occupied? @state move-pos)
+                           (if (is-cell-occupied? @board-state move-pos)
                              (println "Can't place move for player " player " on " move-pos)
-                             (swap! state conj {:player player :pos move-pos}))
+                             (swap! board-state conj {:player player :pos move-pos}))
                            (swap! game-state other-player)
-                           (when (has-won? player @state)
+                           (when (has-won? player @board-state)
                              (reset! game-state [:won-by player])))
    :else :no-predicate-was-true))
 
-(defn setup [])
+(defn setup []
+  (q/frame-rate 60))
 
 (defn scale [pixel-x pixel-y w h factor]
   (let [small (* 0.5 (- 1.0 factor))]
@@ -111,30 +104,28 @@
   (doseq [[x y] coords]
     (draw-shape shape x y 0.8)))
 
-(defn get-moves-for-player [state player]
-  (filter #(= player (:player %)) state))
+(defn get-moves-for-player [board player]
+  (filter #(= player (:player %)) board))
 
 (defn draw []
   (condp = @game-state
-    :turn-a (make-move :a (stupid/get-move @state grid-size-x grid-size-y))
-    :turn-b (make-move :b (stupid/get-move @state grid-size-x grid-size-y))
-    :stopped :do-nothing
+    :turn-a (make-move! :a (stupid/get-move @board-state cell-count-horizontal cell-count-vertical))
+    :turn-b (make-move! :b (stupid/get-move @board-state cell-count-horizontal cell-count-vertical))
     :do-nothing)
   (q/ellipse-mode :corner)
   (q/background 210)
-  (draw-grid grid-size-x grid-size-y)
+  (draw-grid cell-count-horizontal cell-count-vertical)
   (q/no-stroke)
   (q/fill 255 0 0)
-  (draw-shapes q/ellipse (map #(:pos %) (get-moves-for-player @state :a)))
+  (draw-shapes q/ellipse (map #(:pos %) (get-moves-for-player @board-state :a)))
   (q/fill 0 0 255)
-  (draw-shapes q/ellipse (map #(:pos %) (get-moves-for-player @state :b)))
-  (q/stroke 0)
-  (q/fill 0)
+  (draw-shapes q/ellipse (map #(:pos %) (get-moves-for-player @board-state :b)))
+  (q/fill 20)
   (q/text (str "Game state: " @game-state) 20 20))
 
 (defn create-window []
-  (let [x-size (+ (* grid-size-x cell-size) (* 2 x-offset))
-        y-size (+ (* grid-size-y cell-size) (* 2 y-offset))]
+  (let [x-size (+ (* cell-count-horizontal cell-size) (* 2 x-offset))
+        y-size (+ (* cell-count-vertical cell-size) (* 2 y-offset))]
     (q/defsketch gomoku
                  :title "Gomoku"
                  :size [x-size y-size]
