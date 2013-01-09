@@ -14,6 +14,8 @@
 (def cell-size 25) ; in pixels
 
 (def state (atom [{:player :a :pos [2 3]}
+                  {:player :a :pos [3 3]}
+                  {:player :a :pos [10 3]}
                   {:player :b :pos [4 4]}]))
 
 (def game-state (atom :turn-a))
@@ -23,7 +25,7 @@
   (reset! game-state :turn-a))
 
 (defn stop []
-  (swap! game-state :stopped))
+  (reset! game-state :stopped))
 
 (defn other-player [game-state]
   (cond (= game-state :turn-a) :turn-b
@@ -33,6 +35,41 @@
   (some true? (for [cell state]
                 (= (:pos cell) pos))))
 
+(defn get-player-moves [player state]
+  (map :pos (filter #(= player (:player %)) state)))
+
+(defn add-pos [[x1 y1][x2 y2]]
+  [(+ x1 x2)
+   (+ y1 y2)])
+
+(defn nr-of-moves-in-dir [moves start-pos dir]
+  (loop [counter 0
+         pos start-pos]
+    (if (contains? (set moves) pos)
+      (recur (inc counter) 
+             (add-pos pos dir))
+      counter)))
+
+(def dirs
+  (for [x (range -1 2)
+        y (range -1 2)
+        :when (not (and (= 0 x) (= 0 y)))]
+    [x y]))
+
+(defn get-lengths [player state]
+  (let [moves (get-player-moves player state)]
+    (for [move moves
+          dir dirs]
+      (nr-of-moves-in-dir moves move dir))))
+
+;@state
+;(doall (get-player-moves :a @state))
+;(nr-of-moves-in-dir (get-player-moves :a @state) [3 3] [1 1])
+;(doall (get-lengths :a @state))
+
+(defn has-won? [player state]
+  (not (empty? (filter #(>= % 5) (get-lengths player state)))))
+
 (defn make-move [player move-pos]
   (cond 
    (>= (count @state) (* grid-size-x grid-size-y)) (reset! game-state :board-is-full)
@@ -40,7 +77,9 @@
                            (if (is-cell-occupied? @state move-pos)
                              (println "Can't place move for player " player " on " move-pos)
                              (swap! state conj {:player player :pos move-pos}))
-                           (swap! game-state other-player))
+                           (swap! game-state other-player)
+                           (when (has-won? player @state)
+                             (reset! game-state [:won-by player])))
    :else :no-predicate-was-true))
 
 (defn setup [])
@@ -79,6 +118,7 @@
   (condp = @game-state
     :turn-a (make-move :a (stupid/get-move @state grid-size-x grid-size-y))
     :turn-b (make-move :b (stupid/get-move @state grid-size-x grid-size-y))
+    :stopped :do-nothing
     :do-nothing)
   (q/ellipse-mode :corner)
   (q/background 210)
