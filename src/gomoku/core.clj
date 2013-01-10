@@ -33,7 +33,7 @@
 (defn make-move! [player move-pos]
   (if (or (gameplay/is-cell-occupied? @board-state move-pos)
           (gameplay/is-cell-outside-bounds? move-pos cells-horizontal cells-vertical))
-    (println "Can't place move for player " player " on " move-pos)
+    (println "Can't place move for player" player "on" move-pos)
     (swap! board-state conj (gameplay/create-move player move-pos))))
 
 (defn let-player-do-turn [player]

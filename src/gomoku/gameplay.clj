@@ -12,8 +12,8 @@
                 (= (:pos cell) pos))))
 
 (defn is-cell-outside-bounds? [[x y] w h]
-  (not (and (<= x 0)
-            (<= y 0)
+  (not (and (<= 0 x)
+            (<= 0 y)
             (< x w)
             (< y h))))
 
