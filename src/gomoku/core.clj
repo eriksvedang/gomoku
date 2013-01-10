@@ -20,9 +20,16 @@
 ; Info about winner, active-player, etc
 (def game-state (atom {}))
 
+(defn random-player []
+  (rand-nth [:a :b]))
+
 (defn new-game []
   (reset! board-state [])
-  (reset! game-state {:active-player :a :winner nil :playing true}))
+  (reset! game-state {:active-player (random-player) :playing true :wins {:a 0 :b 0}}))
+
+(defn start-next-round []
+  (reset! board-state [])
+  (swap! game-state assoc-in [:active-player] (random-player)))
 
 (defn stop []
   (swap! game-state assoc-in [:playing] false))
@@ -48,27 +55,27 @@
 (defn get-active-player []
   (:active-player @game-state))
 
-(defn still-playing? []
-  (and
-   (nil? (:winner @game-state))
-   (true? (:playing @game-state))
-   (contains? #{:a :b} (get-active-player))))
+(defn winner-decided [player]
+  (swap! game-state update-in [:wins player] inc)
+  (start-next-round))
 
-(defn update-states []
+(defn update []
   (let [active-player (get-active-player)]
-    (cond
-     (board-is-full?) (swap! game-state assoc-in [:active-player] :none)
-     (still-playing?) (let-player-do-turn active-player))
-    (when (gameplay/has-won? active-player @board-state)
-      (swap! game-state assoc-in [:winner] active-player)))
-  (when (still-playing?)
-    (swap! game-state update-in [:active-player] gameplay/other-player)))
-  
+    (let-player-do-turn active-player)
+    (cond 
+     (gameplay/has-won? active-player @board-state) (winner-decided active-player)
+     (board-is-full?) (start-next-round)
+     :else (swap! game-state update-in [:active-player] gameplay/other-player))))
+      
+(defn still-playing? []
+  (true? (:playing @game-state)))
+      
 (defn setup []
   (q/frame-rate 60))
 
 (defn draw []
-  (update-states)
+  (when (still-playing?)
+    (update))
   (graphics/draw @board-state @game-state cells-horizontal cells-vertical))
 
 (defn create-window []
