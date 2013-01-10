@@ -3,9 +3,8 @@
 (defn create-move [player move-pos]
   {:player player :pos move-pos})
 
-(defn other-player [game-state]
-  (cond (= game-state :a) :b
-        (= game-state :b) :a))
+(defn other-player [player]
+  ({:a :b :b :a} player))
 
 (defn is-cell-occupied? [board pos]
   (some true? (for [cell board]
@@ -23,9 +22,8 @@
 (defn get-positions-of-moves-for-player [board player]
   (map :pos (get-moves-for-player board player)))
 
-(defn add-pos [[x1 y1][x2 y2]]
-  [(+ x1 x2)
-   (+ y1 y2)])
+(defn add-pos [p1 p2]
+  (map + p1 p2))
 
 (defn nr-of-moves-in-dir [moves start-pos dir]
   (loop [counter 0
@@ -42,10 +40,10 @@
     [x y]))
 
 (defn get-chain-lengths [player board]
-  (let [moves (get-positions-of-moves-for-player board player)]
-    (for [move moves
+  (let [positions (get-positions-of-moves-for-player board player)]
+    (for [pos positions
           dir dirs]
-      (nr-of-moves-in-dir moves move dir))))
+      (nr-of-moves-in-dir positions pos dir))))
 
 (defn has-won? [player board]
   (not (empty? (filter #(>= % 5) (get-chain-lengths player board)))))
