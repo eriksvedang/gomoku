@@ -12,21 +12,24 @@
 (def cell-count-horizontal 20)
 (def cell-count-vertical 15)
 
-(def board-state (atom [{:player :a :pos [0 1]}
-                        {:player :b :pos [2 3]}]))
+; Contains all the moves
+(def board-state (atom []))
 
-(def game-state (atom :turn-a))
+(def game-state (atom :a))
 
 (defn new-game []
   (reset! board-state [])
-  (reset! game-state :turn-a))
+  (reset! game-state :a))
 
 (defn stop []
   (reset! game-state :stopped))
 
+(defn create-move [player move-pos]
+  {:player player :pos move-pos})
+
 (defn other-player [game-state]
-  (cond (= game-state :turn-a) :turn-b
-        (= game-state :turn-b) :turn-a))
+  (cond (= game-state :a) :b
+        (= game-state :b) :a))
 
 (defn is-cell-occupied? [board pos]
   (some true? (for [cell board]
@@ -68,7 +71,7 @@
    (not (nil? move-pos)) (do
                            (if (is-cell-occupied? @board-state move-pos)
                              (println "Can't place move for player " player " on " move-pos)
-                             (swap! board-state conj {:player player :pos move-pos}))
+                             (swap! board-state conj (create-move player move-pos)))
                            (swap! game-state other-player)
                            (when (has-won? player @board-state)
                              (reset! game-state [:won-by player])))
@@ -109,8 +112,8 @@
 
 (defn draw []
   (condp = @game-state
-    :turn-a (make-move! :a (stupid/get-move @board-state cell-count-horizontal cell-count-vertical))
-    :turn-b (make-move! :b (stupid/get-move @board-state cell-count-horizontal cell-count-vertical))
+    :a (make-move! :a (stupid/get-move @board-state cell-count-horizontal cell-count-vertical))
+    :b (make-move! :b (stupid/get-move @board-state cell-count-horizontal cell-count-vertical))
     :do-nothing)
   (q/ellipse-mode :corner)
   (q/background 210)
