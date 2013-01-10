@@ -11,8 +11,11 @@
   (some true? (for [cell board]
                 (= (:pos cell) pos))))
 
-(defn get-player-moves [player board]
-  (map :pos (filter #(= player (:player %)) board)))
+(defn get-moves-for-player [board player]
+  (filter #(= player (:player %)) board))
+
+(defn get-positions-of-moves-for-player [board player]
+  (map :pos (get-moves-for-player board player)))
 
 (defn add-pos [[x1 y1][x2 y2]]
   [(+ x1 x2)
@@ -32,11 +35,11 @@
         :when (not (and (= 0 x) (= 0 y)))]
     [x y]))
 
-(defn get-lengths [player board]
-  (let [moves (get-player-moves player board)]
+(defn get-chain-lengths [player board]
+  (let [moves (get-positions-of-moves-for-player board player)]
     (for [move moves
           dir dirs]
       (nr-of-moves-in-dir moves move dir))))
 
 (defn has-won? [player board]
-  (not (empty? (filter #(>= % 5) (get-lengths player board)))))
+  (not (empty? (filter #(>= % 5) (get-chain-lengths player board)))))

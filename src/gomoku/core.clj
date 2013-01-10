@@ -1,6 +1,7 @@
 (ns gomoku.core
   (:require [quil.core :as q]
             [gomoku.gameplay :as gameplay]
+            [gomoku.graphics :as graphics]
             [gomoku.stupid-ai :as stupid])
   (:gen-class))
 
@@ -8,11 +9,6 @@
 (def ai-fns 
   {:a stupid/get-move 
    :b stupid/get-move})
-
-; Some pixel settings
-(def x-offset 15)
-(def y-offset 40)
-(def cell-size 25)
 
 ; Game board settings
 (def cell-count-horizontal 20)
@@ -46,60 +42,21 @@
                              (reset! game-state [:won-by player])))
    :else :no-predicate-was-true))
 
-(defn setup []
-  (q/frame-rate 60))
-
-(defn scale [pixel-x pixel-y w h factor]
-  (let [small (* 0.5 (- 1.0 factor))]
-    [(+ pixel-x (* w small))
-     (+ pixel-y (* h small))
-     (* w factor)
-     (* h factor)]))
-
-(defn draw-shape [shape x y scale-factor]
-  (apply shape (scale (+ (* x cell-size) x-offset)
-                      (+ (* y cell-size) y-offset)
-                      cell-size
-                      cell-size
-                      scale-factor)))
-
-(defn draw-grid [x-dim y-dim]
-  (q/stroke 20)
-  (q/fill 255)
-  (let [cells (for [x (range x-dim)
-                    y (range y-dim)]
-                [x y])]
-    (doseq [[x y] cells]
-      (draw-shape q/rect x y 1.0))))
-
-(defn draw-shapes [shape coords]
-  (doseq [[x y] coords]
-    (draw-shape shape x y 0.8)))
-
-(defn get-moves-for-player [board player]
-  (filter #(= player (:player %)) board))
-
 (defn update-states []
   (let [active-player @game-state]
     (when (contains? #{:a :b} active-player)
       (make-move! active-player ((get ai-fns active-player) @board-state cell-count-horizontal cell-count-vertical)))))
 
+(defn setup []
+  (q/frame-rate 60))
+
 (defn draw []
   (update-states)
-  (q/ellipse-mode :corner)
-  (q/background 210)
-  (draw-grid cell-count-horizontal cell-count-vertical)
-  (q/no-stroke)
-  (q/fill 255 0 0)
-  (draw-shapes q/ellipse (map #(:pos %) (get-moves-for-player @board-state :a)))
-  (q/fill 0 0 255)
-  (draw-shapes q/ellipse (map #(:pos %) (get-moves-for-player @board-state :b)))
-  (q/fill 20)
-  (q/text (str "Game state: " @game-state) 20 20))
+  (graphics/draw @board-state @game-state cell-count-horizontal cell-count-vertical))
 
 (defn create-window []
-  (let [x-size (+ (* cell-count-horizontal cell-size) (* 2 x-offset))
-        y-size (+ (* cell-count-vertical cell-size) (* 2 y-offset))]
+  (let [x-size (+ (* cell-count-horizontal graphics/cell-size) (* 2 graphics/x-offset))
+        y-size (+ (* cell-count-vertical graphics/cell-size) (* 2 graphics/y-offset))]
     (q/defsketch gomoku
                  :title "Gomoku"
                  :size [x-size y-size]
