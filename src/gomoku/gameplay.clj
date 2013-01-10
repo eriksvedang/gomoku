@@ -11,6 +11,12 @@
   (some true? (for [cell board]
                 (= (:pos cell) pos))))
 
+(defn is-cell-outside-bounds? [[x y] w h]
+  (not (and (<= x 0)
+            (<= y 0)
+            (< x w)
+            (< y h))))
+
 (defn get-moves-for-player [board player]
   (filter #(= player (:player %)) board))
 
