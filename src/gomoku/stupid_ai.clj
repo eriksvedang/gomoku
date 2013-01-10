@@ -14,7 +14,3 @@
     (if (empty? possible-moves)
       nil
       (rand-nth possible-moves))))
-
-;(def test-state [{:player :a :pos [2 3]} {:player :b :pos [4 4]}])
-;(is-cell-occupied? test-state [4 4])
-;(get-move test-state 10 10)
