@@ -14,3 +14,7 @@
     (if (empty? possible-moves)
       nil
       (rand-nth possible-moves))))
+
+(defn slow-move [s w h]
+  (. Thread (sleep (+ 100 (rand-int 900))))
+  (get-move s w h))

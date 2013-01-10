@@ -7,7 +7,7 @@
 
 ; Lookup table for what ai function to use for each player
 (def ai-fns 
-  {:a stupid/get-move 
+  {:a stupid/slow-move 
    :b stupid/get-move})
 
 ; Game board settings
@@ -19,6 +19,9 @@
 
 ; Info about winner, active-player, etc
 (def game-state (atom {}))
+
+; The agent that runs the ai functions
+(def worker (agent nil))
 
 (defn random-player []
   (rand-nth [:a :b]))
@@ -46,10 +49,18 @@
     (println "Can't place move for player" player "on" move-pos)
     (swap! board-state conj (gameplay/create-move player move-pos))))
 
+(defn create-worker-function [player board-state h v]
+  "Creates an anonymous function that ignores the argument; the current state of the agent"
+  (fn [_] ((get ai-fns player) board-state h v)))
+
 (defn let-player-do-turn [player]
-  (let [move-pos ((get ai-fns player) @board-state cells-horizontal cells-vertical)]
-    (if (nil? move-pos)
-      (println "Got invalid move from ai for player " player)
+  (send worker (fn [_] :TIMED-OUT)) ; Default value that will be kept if await-for times out
+  (let [f (create-worker-function player @board-state cells-horizontal cells-vertical)]
+    (send worker f)
+    (await-for 500 worker))
+  (let [move-pos @worker]
+    (if (or (nil? move-pos) (not (vector? move-pos)) (not (= 2 (count move-pos))))
+      (println (str "Got invalid move-pos from ai for player " player " " move-pos))
       (make-move! player move-pos))))
 
 (defn get-active-player []
@@ -74,9 +85,9 @@
   (q/frame-rate 60))
 
 (defn draw []
+  (graphics/draw @board-state @game-state cells-horizontal cells-vertical)
   (when (still-playing?)
-    (update))
-  (graphics/draw @board-state @game-state cells-horizontal cells-vertical))
+    (update)))
 
 (defn create-window []
   (let [x-size (+ (* cells-horizontal graphics/cell-size) (* 2 graphics/x-offset))
