@@ -42,17 +42,17 @@
       (println "Got invalid move from ai for player " player)
       (make-move! player move-pos))))
 
-(defn no-winner? []
+(defn still-playing? []
   (contains? #{:a :b} @game-state))
 
 (defn update-states []
   (let [active-player @game-state]
     (cond
      (board-is-full?) (reset! game-state :board-is-full)
-     (contains? #{:a :b} active-player) (let-player-do-turn active-player))
+     (still-playing?) (let-player-do-turn active-player))
     (when (gameplay/has-won? active-player @board-state)
       (reset! game-state [:won-by active-player])))
-  (when (no-winner?)
+  (when (still-playing?)
     (swap! game-state gameplay/other-player)))
   
 (defn setup []
