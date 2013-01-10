@@ -18,14 +18,17 @@
 (def board-state (atom []))
 
 ; Info about winner, active-player, etc
-(def game-state (atom :a))
+(def game-state (atom {}))
 
 (defn new-game []
   (reset! board-state [])
-  (reset! game-state :a))
+  (reset! game-state {:active-player :a :winner nil :playing true}))
 
 (defn stop []
-  (reset! game-state :stopped))
+  (swap! game-state assoc-in [:playing] false))
+
+(defn resume []
+  (swap! game-state assoc-in [:playing] true))
 
 (defn board-is-full? []
   (>= (count @board-state) (* cells-horizontal cells-vertical)))
@@ -42,18 +45,24 @@
       (println "Got invalid move from ai for player " player)
       (make-move! player move-pos))))
 
+(defn get-active-player []
+  (:active-player @game-state))
+
 (defn still-playing? []
-  (contains? #{:a :b} @game-state))
+  (and
+   (nil? (:winner @game-state))
+   (true? (:playing @game-state))
+   (contains? #{:a :b} (get-active-player))))
 
 (defn update-states []
-  (let [active-player @game-state]
+  (let [active-player (get-active-player)]
     (cond
-     (board-is-full?) (reset! game-state :board-is-full)
+     (board-is-full?) (swap! game-state assoc-in [:active-player] :none)
      (still-playing?) (let-player-do-turn active-player))
     (when (gameplay/has-won? active-player @board-state)
-      (reset! game-state [:won-by active-player])))
+      (swap! game-state assoc-in [:winner] active-player)))
   (when (still-playing?)
-    (swap! game-state gameplay/other-player)))
+    (swap! game-state update-in [:active-player] gameplay/other-player)))
   
 (defn setup []
   (q/frame-rate 60))
