@@ -3,6 +3,11 @@
             [gomoku.stupid-ai :as stupid])
   (:gen-class))
 
+; Switchboard for what ai functions to use for the two players
+(def ai-fns 
+  {:a stupid/get-move 
+   :b stupid/get-move})
+
 ; Some pixel settings
 (def x-offset 15)
 (def y-offset 40)
@@ -15,6 +20,7 @@
 ; Contains all the moves
 (def board-state (atom []))
 
+; Contains info about winner, active-player, etc
 (def game-state (atom :a))
 
 (defn new-game []
@@ -110,11 +116,13 @@
 (defn get-moves-for-player [board player]
   (filter #(= player (:player %)) board))
 
+(defn update-states []
+  (let [active-player @game-state]
+    (when (contains? #{:a :b} active-player)
+      (make-move! active-player ((get ai-fns active-player) @board-state cell-count-horizontal cell-count-vertical)))))
+
 (defn draw []
-  (condp = @game-state
-    :a (make-move! :a (stupid/get-move @board-state cell-count-horizontal cell-count-vertical))
-    :b (make-move! :b (stupid/get-move @board-state cell-count-horizontal cell-count-vertical))
-    :do-nothing)
+  (update-states)
   (q/ellipse-mode :corner)
   (q/background 210)
   (draw-grid cell-count-horizontal cell-count-vertical)
