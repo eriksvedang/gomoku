@@ -20,25 +20,26 @@
 ; Info about winner, active-player, etc
 (def game-state (atom {}))
 
-; The agent that runs the ai functions
-(def worker (agent nil))
-
 (defn random-player []
   (rand-nth [:a :b]))
 
-(defn new-game []
+(defn new-game! []
   (reset! board-state [])
   (reset! game-state {:active-player (random-player) :playing true :wins {:a 0 :b 0}}))
 
-(defn start-next-round []
+(defn start-next-round! []
   (reset! board-state [])
   (swap! game-state assoc-in [:active-player] (random-player)))
 
-(defn stop []
+(defn stop! []
   (swap! game-state assoc-in [:playing] false))
 
-(defn resume []
+(defn resume! []
   (swap! game-state assoc-in [:playing] true))
+
+(defn winner-decided! [player]
+  (swap! game-state update-in [:wins player] inc)
+  (start-next-round!))
 
 (defn board-is-full? []
   (>= (count @board-state) (* cells-horizontal cells-vertical)))
@@ -53,40 +54,37 @@
   "Creates an anonymous function that ignores the argument; the current state of the agent"
   (fn [_] ((get ai-fns player) board-state h v)))
 
+(defn invalid-pos? [move-pos]
+  (or (nil? move-pos) (not (vector? move-pos)) (not (= 2 (count move-pos)))))
+
 (defn let-player-do-turn [player]
-  (send worker (fn [_] :TIMED-OUT)) ; Default value that will be kept if await-for times out
-  (let [f (create-worker-function player @board-state cells-horizontal cells-vertical)]
+  (let [worker (agent :TIMED-OUT)
+        f (create-worker-function player @board-state cells-horizontal cells-vertical)]
     (send worker f)
-    (await-for 500 worker))
-  (let [move-pos @worker]
-    (if (or (nil? move-pos) (not (vector? move-pos)) (not (= 2 (count move-pos))))
-      (println (str "Got invalid move-pos from ai for player " player " " move-pos))
-      (make-move! player move-pos))))
+    (await-for 500 worker)
+    (let [move-pos @worker]
+      (cond
+       (= :TIMED-OUT move-pos) (println (str "Player " player " was too slow to make a move"))
+       (invalid-pos? move-pos) (println (str "Got invalid move-pos from ai for player " player " " move-pos))
+       :else (make-move! player move-pos)))))
 
 (defn get-active-player []
   (:active-player @game-state))
-
-(defn winner-decided [player]
-  (swap! game-state update-in [:wins player] inc)
-  (start-next-round))
 
 (defn update []
   (let [active-player (get-active-player)]
     (let-player-do-turn active-player)
     (cond 
-     (gameplay/has-won? active-player @board-state) (winner-decided active-player)
-     (board-is-full?) (start-next-round)
+     (gameplay/has-won? active-player @board-state) (winner-decided! active-player)
+     (board-is-full?) (start-next-round!)
      :else (swap! game-state update-in [:active-player] gameplay/other-player))))
-      
-(defn still-playing? []
-  (true? (:playing @game-state)))
       
 (defn setup []
   (q/frame-rate 60))
 
 (defn draw []
   (graphics/draw @board-state @game-state cells-horizontal cells-vertical)
-  (when (still-playing?)
+  (when (:playing @game-state)
     (update)))
 
 (defn create-window []
@@ -99,5 +97,5 @@
                  :draw draw)))
 
 (defn -main []
-  (new-game)
+  (new-game!)
   (create-window))
