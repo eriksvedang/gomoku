@@ -7,7 +7,7 @@
 
 ; Lookup table for what ai function to use for each player
 (def ai-fns 
-  {:a stupid/slow-move 
+  {:a stupid/get-move 
    :b stupid/get-move})
 
 ; Game board settings
