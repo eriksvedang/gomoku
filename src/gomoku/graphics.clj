@@ -47,4 +47,9 @@
   (q/fill 0 0 255)
   (draw-moves-for-player board-state :b)
   (q/fill 20)
-  (q/text (str "Game state: " game-state) 20 20))
+  (q/text (str "Player a wins: " (get-in game-state [:wins :a]) "   "
+               "Player b wins: " (get-in game-state [:wins :b]))
+          25 25)
+  (q/text (str "Active player: " (name (:active-player game-state)))
+          25 (- (q/height) 15)))
+
