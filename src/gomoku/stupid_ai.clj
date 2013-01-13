@@ -5,8 +5,7 @@
     [x y]))
 
 (defn is-cell-occupied? [state pos]
-  (some true? (for [cell state]
-                (= (:pos cell) pos))))
+  (contains? (set (map :pos state)) pos))
 
 (defn get-move [state board-width board-height]
   (let [all-positions (get-all-positions board-width board-height)
