@@ -7,8 +7,11 @@
 
 ; Lookup table for what ai function to use for each player
 (def ai-fns 
-  {:a stupid/get-move 
-   :b stupid/get-move})
+  {:a stupid/slow-move 
+   :b stupid/slow-move})
+
+; Nr of milliseconds the ai has to make it's move or the turn will go to the other player
+(def ai-time-limit 1000)
 
 ; Game board settings
 (def cells-horizontal 20)
@@ -61,7 +64,7 @@
   (let [worker (agent :TIMED-OUT)
         f (create-worker-function player @board-state cells-horizontal cells-vertical)]
     (send worker f)
-    (await-for 500 worker)
+    (await-for ai-time-limit worker)
     (let [move-pos @worker]
       (cond
        (= :TIMED-OUT move-pos) (println (str "Player " player " was too slow to make a move"))
@@ -83,9 +86,7 @@
   (q/frame-rate 60))
 
 (defn draw []
-  (graphics/draw @board-state @game-state cells-horizontal cells-vertical)
-  (when (:playing @game-state)
-    (update)))
+  (graphics/draw @board-state @game-state cells-horizontal cells-vertical))
 
 (defn create-window []
   (let [x-size (+ (* cells-horizontal graphics/cell-size) (* 2 graphics/x-offset))
@@ -96,6 +97,21 @@
                  :setup setup
                  :draw draw)))
 
+(def update-thread-on (atom true))
+
+(defn update-loop []
+  (while @update-thread-on
+    (when (:playing @game-state)
+      (update))))
+
+(defn start-update-loop []
+  (reset! update-thread-on true)
+  (.start (Thread. #(update-loop))))
+
+(defn stop-update-loop []
+  (reset! update-thread-on false))
+
 (defn -main []
   (new-game!)
-  (create-window))
+  (create-window)
+  (start-update-loop))
