@@ -39,7 +39,7 @@
 
 (defn draw [board-state game-state cell-count-horizontal cell-count-vertical fraction-of-time-used]
   (q/ellipse-mode :corner)
-  (q/background 230 (+ (* (Math/sin (* 0.1 (q/frame-count))) 20) 235) 230)
+  (q/background 230)
   (draw-grid cell-count-horizontal cell-count-vertical)
   (q/no-stroke)
   (q/fill 255 0 0)
@@ -53,6 +53,6 @@
   (let [x 20 y (- (q/height) 25) w (- (q/width) 40) h 10]
     (q/fill 200)
     (q/rect x y w h)
-    (q/fill 50)
+    (q/fill 150)
     (q/rect x y (* fraction-of-time-used w) h)))
 

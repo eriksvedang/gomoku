@@ -15,5 +15,5 @@
       (rand-nth possible-moves))))
 
 (defn slow-move [s w h]
-  (Thread/sleep (+ 100 (rand-int 600)))
+  (Thread/sleep (+ 100 (rand-int 1000)))
   (get-move s w h))
