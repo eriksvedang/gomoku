@@ -39,7 +39,7 @@
 
 (defn draw [board-state game-state cell-count-horizontal cell-count-vertical]
   (q/ellipse-mode :corner)
-  (q/background 210)
+  (q/background 230 (+ (* (Math/sin (* 0.1 (q/frame-count))) 20) 235) 230)
   (draw-grid cell-count-horizontal cell-count-vertical)
   (q/no-stroke)
   (q/fill 255 0 0)
