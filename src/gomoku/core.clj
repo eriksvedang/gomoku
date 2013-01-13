@@ -11,7 +11,7 @@
    :b stupid/slow-move})
 
 ; Nr of milliseconds the ai has to make it's move or the turn will go to the other player
-(def ai-time-limit 1000)
+(def ai-time-limit 2000)
 
 ; Game board settings
 (def cells-horizontal 20)
@@ -28,11 +28,18 @@
 
 (defn new-game! []
   (reset! board-state [])
-  (reset! game-state {:active-player (random-player) :playing true :wins {:a 0 :b 0}}))
+  (reset! game-state {:active-player (random-player) 
+                      :playing true 
+                      :last-move-time 0
+                      :wins {:a 0 :b 0}}))
+
+(defn refresh-last-move-time! []
+  (swap! game-state assoc :last-move-time (System/currentTimeMillis)))
 
 (defn start-next-round! []
   (reset! board-state [])
-  (swap! game-state assoc-in [:active-player] (random-player)))
+  (swap! game-state assoc-in [:active-player] (random-player))
+  (refresh-last-move-time!))
 
 (defn stop! []
   (swap! game-state assoc-in [:playing] false))
@@ -50,7 +57,7 @@
 (defn make-move! [player move-pos]
   (if (or (gameplay/is-cell-occupied? @board-state move-pos)
           (gameplay/is-cell-outside-bounds? move-pos cells-horizontal cells-vertical))
-    (println "Can't place move for player" player "on" move-pos)
+    (println (str "Can't place move for player " (name player) " on " move-pos))
     (swap! board-state conj (gameplay/create-move player move-pos))))
 
 (defn create-worker-function [player board-state h v]
@@ -61,6 +68,7 @@
   (or (nil? move-pos) (not (vector? move-pos)) (not (= 2 (count move-pos)))))
 
 (defn let-player-do-turn [player]
+  (refresh-last-move-time!)
   (let [worker (agent :TIMED-OUT)
         f (create-worker-function player @board-state cells-horizontal cells-vertical)]
     (send worker f)
@@ -81,12 +89,16 @@
      (gameplay/has-won? active-player @board-state) (winner-decided! active-player)
      (board-is-full?) (start-next-round!)
      :else (swap! game-state update-in [:active-player] gameplay/other-player))))
+
+(defn time-fraction-used []
+  (/ (- (System/currentTimeMillis) (:last-move-time @game-state))
+     (float ai-time-limit)))
       
 (defn setup []
   (q/frame-rate 60))
 
 (defn draw []
-  (graphics/draw @board-state @game-state cells-horizontal cells-vertical))
+  (graphics/draw @board-state @game-state cells-horizontal cells-vertical (time-fraction-used)))
 
 (defn create-window []
   (let [x-size (+ (* cells-horizontal graphics/cell-size) (* 2 graphics/x-offset))

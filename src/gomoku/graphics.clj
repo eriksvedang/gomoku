@@ -37,7 +37,7 @@
 (defn draw-moves-for-player [board-state player]
   (draw-shapes q/ellipse (gameplay/get-positions-of-moves-for-player board-state player)))
 
-(defn draw [board-state game-state cell-count-horizontal cell-count-vertical]
+(defn draw [board-state game-state cell-count-horizontal cell-count-vertical fraction-of-time-used]
   (q/ellipse-mode :corner)
   (q/background 230 (+ (* (Math/sin (* 0.1 (q/frame-count))) 20) 235) 230)
   (draw-grid cell-count-horizontal cell-count-vertical)
@@ -50,6 +50,9 @@
   (q/text (str "Player a wins: " (get-in game-state [:wins :a]) "   "
                "Player b wins: " (get-in game-state [:wins :b]))
           25 25)
-  (q/text (str "Active player: " (name (:active-player game-state)))
-          25 (- (q/height) 15)))
+  (let [x 20 y (- (q/height) 25) w (- (q/width) 40) h 10]
+    (q/fill 200)
+    (q/rect x y w h)
+    (q/fill 50)
+    (q/rect x y (* fraction-of-time-used w) h)))
 
