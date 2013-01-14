@@ -13,6 +13,9 @@
 ; Nr of milliseconds the ai has to make it's move or the turn will go to the other player
 (def ai-time-limit 2000)
 
+; Should the game stop after someone has won?
+(def stop-after-win true)
+
 ; Game board settings
 (def cells-horizontal 20)
 (def cells-vertical 15)
@@ -36,20 +39,23 @@
 (defn refresh-last-move-time! []
   (swap! game-state assoc :last-move-time (System/currentTimeMillis)))
 
-(defn start-next-round! []
-  (reset! board-state [])
-  (swap! game-state assoc-in [:active-player] (random-player))
-  (refresh-last-move-time!))
-
 (defn stop! []
   (swap! game-state assoc-in [:playing] false))
 
 (defn resume! []
   (swap! game-state assoc-in [:playing] true))
 
+(defn start-next-round! []
+  (reset! board-state [])
+  (swap! game-state assoc-in [:active-player] (random-player))
+  (resume!)
+  (refresh-last-move-time!))
+
 (defn winner-decided! [player]
   (swap! game-state update-in [:wins player] inc)
-  (start-next-round!))
+  (if stop-after-win
+    (stop!)
+    (start-next-round!)))
 
 (defn board-is-full? []
   (>= (count @board-state) (* cells-horizontal cells-vertical)))
@@ -91,8 +97,10 @@
      :else (swap! game-state update-in [:active-player] gameplay/other-player))))
 
 (defn time-fraction-used []
-  (/ (- (System/currentTimeMillis) (:last-move-time @game-state))
-     (float ai-time-limit)))
+  (if (:playing @game-state)
+    (/ (- (System/currentTimeMillis) (:last-move-time @game-state))
+       (float ai-time-limit))
+    0))
       
 (defn setup []
   (q/frame-rate 60))
@@ -100,11 +108,15 @@
 (defn draw []
   (graphics/draw @board-state @game-state cells-horizontal cells-vertical (time-fraction-used)))
 
+(defn key-pressed []
+  (start-next-round!))
+
 (defn create-window []
   (let [x-size (+ (* cells-horizontal graphics/cell-size) (* 2 graphics/x-offset))
         y-size (+ (* cells-vertical graphics/cell-size) (* 2 graphics/y-offset))]
     (q/defsketch gomoku
                  :title "Gomoku"
+                 :key-pressed key-pressed
                  :size [x-size y-size]
                  :setup setup
                  :draw draw)))

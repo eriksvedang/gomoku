@@ -6,9 +6,8 @@
 (defn other-player [player]
   ({:a :b :b :a} player))
 
-(defn is-cell-occupied? [board pos]
-  (some true? (for [cell board]
-                (= (:pos cell) pos))))
+(defn is-cell-occupied? [state pos]
+  (contains? (set (map :pos state)) pos))
 
 (defn is-cell-outside-bounds? [[x y] w h]
   (not (and (<= 0 x)
@@ -25,10 +24,10 @@
 (defn add-pos [p1 p2]
   (map + p1 p2))
 
-(defn nr-of-moves-in-dir [moves start-pos dir]
+(defn nr-of-moves-in-dir [positions start-pos dir]
   (loop [counter 0
          pos start-pos]
-    (if (contains? (set moves) pos)
+    (if (contains? (set positions) pos)
       (recur (inc counter) 
              (add-pos pos dir))
       counter)))
