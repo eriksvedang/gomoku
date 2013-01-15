@@ -7,13 +7,13 @@
 (defn is-cell-occupied? [state pos]
   (contains? (set (map :pos state)) pos))
 
-(defn get-move [state board-width board-height]
+(defn get-move [state board-width board-height player]
   (let [all-positions (get-all-positions board-width board-height)
         possible-moves (remove #(is-cell-occupied? state %) all-positions)]
     (if (empty? possible-moves)
       nil
       (rand-nth possible-moves))))
 
-(defn slow-move [s w h]
+(defn slow-move [s w h p]
   (Thread/sleep (+ 10 (rand-int 100)))
-  (get-move s w h))
+  (get-move s w h p))

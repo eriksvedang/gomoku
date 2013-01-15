@@ -66,9 +66,9 @@
     (println (str "Can't place move for player " (name player) " on " move-pos))
     (swap! board-state conj (gameplay/create-move player move-pos))))
 
-(defn create-worker-function [player board-state h v]
+(defn create-worker-function [player board-state h v player]
   "Creates an anonymous function that ignores the argument; the current state of the agent"
-  (fn [_] ((get ai-fns player) board-state h v)))
+  (fn [_] ((get ai-fns player) board-state h v player)))
 
 (defn invalid-pos? [move-pos]
   (or (nil? move-pos) (not (vector? move-pos)) (not (= 2 (count move-pos)))))
@@ -76,7 +76,7 @@
 (defn let-player-do-turn [player]
   (refresh-last-move-time!)
   (let [worker (agent :TIMED-OUT)
-        f (create-worker-function player @board-state cells-horizontal cells-vertical)]
+        f (create-worker-function player @board-state cells-horizontal cells-vertical player)]
     (send worker f)
     (await-for ai-time-limit worker)
     (let [move-pos @worker]
